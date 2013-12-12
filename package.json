@@ -1,0 +1,36 @@
+{
+    "name": "jsx",
+    "version": "0.0.8",
+    "homepage": "https://github.com/diegovilar/jsx",
+    "description": "jsx ===",
+    "main": "build\\jsx.js",
+    "scripts": {
+        "prepublish": "npm test",
+        "test": "node_modules\\.bin\\jasmine-node spec",
+        "autotest": "node_modules\\.bin\\jasmine-node spec --autotest --watch src"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/diegovilar/jsx.git"
+    },
+    "keywords": [
+        "javascript",
+        "library",
+        "assert",
+        "utils"
+    ],
+    "devDependencies": {
+        "jasmine-node": "~1.11.0",
+        "lodash": "~2.3.0",
+        "grunt": "0.4.x"
+    },
+    "author": {
+        "name": "Diego Vilar",
+        "email": "diegovilar@gmail.com",
+        "url": "http://github.com/diegovilar"
+    },
+    "license": "The MIT License (MIT)",
+    "bugs": {
+        "url": "https://github.com/diegovilar/jsx/issues"
+    }
+}
