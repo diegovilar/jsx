@@ -1,7 +1,7 @@
 (function(global, jsx) {
     "use strict";
 
-    var argsToArray = utils.argsToArray;
+    var argsToArray = jsx.argsToArray;
 
 
     function createLazyModule() {

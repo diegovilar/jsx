@@ -587,4 +587,4 @@
         assertNullableEnum: assertNullableEnum
     };
 
-})(window, jsx, jsx.exceptions);
+})(this, jsx, jsx.exceptions);
