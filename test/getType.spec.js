@@ -14,7 +14,6 @@ describe('getType', function () {
         O_NUMBER = 'Number',
         FUNCTION = 'function',
         OBJECT = 'object',
-        O_OBJECT = 'Object',
         ARRAY = 'Array',
         DATE = 'Date',
         ERROR = 'Error',
@@ -31,7 +30,7 @@ describe('getType', function () {
 
     });
 
-    it('should return correct types for functions', function () {
+    it('should return correct type for functions', function () {
 
         expect(getType(function(){})).toBe(FUNCTION);
 
@@ -68,19 +67,28 @@ describe('getType', function () {
 
     });
 
-    if (Animal.hasOwnProperty('name')) {
-        it('should return "Animal" if the there is a "name" property on the constructor', function () {
+    if (Object.hasOwnProperty('name')) {
+        it('should return the constructor\'s name if the there is a "name" property on the constructor', function () {
 
             expect(getType(new Animal())).toBe(ANIMAL);
 
         });
     }
     else {
-        it('should return "Object" if the there is no "name" property on the constructor', function () {
+        it('should return "object" if the there is no "name" property on the constructor', function () {
 
-            expect(getType(new Animal())).toBe(O_OBJECT);
+            expect(getType(new Animal())).toBe(OBJECT);
 
         });
     }
+
+    it('should return the prototype\'s constructor name of an object', function () {
+
+        function Plant(){}
+        Plant.prototype = new Date();
+
+        expect(getType(new Plant())).toBe(DATE);
+
+    });
 
 });

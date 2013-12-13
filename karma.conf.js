@@ -17,7 +17,7 @@ module.exports = function (config) {
             // Src code
             'src/es5-custom.js',
             'src/jsx-core.js',
-//            'src/jsx-asserts.js',
+            'src/jsx-asserts.js',
 //            'src/jsx-exceptions.js',
 //            'src/jsx-converters.js',
 //            'src/jsx-ng.js'

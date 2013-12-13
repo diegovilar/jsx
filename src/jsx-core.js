@@ -183,7 +183,8 @@
     var getType = (function() {
 
         var reObjectName = /\[object (.+)\]/,
-            toString = Object.prototype.toString;
+            toString = Object.prototype.toString,
+            OBJECT = 'object';
 
 
         /**
@@ -197,7 +198,7 @@
             var objectString = toString.call(object),
                 match = reObjectName.exec(objectString);
 
-            return match === null ? 'Object' : match[1];
+            return match === null ? OBJECT : match[1] === 'Object' ? OBJECT : match[1];
 
         }
 
@@ -217,7 +218,7 @@
                     }
                     break;
 
-                case 'object':
+                case OBJECT:
                     if (value === null) {
                         return 'null'
                     }
@@ -245,11 +246,80 @@
     /**
      *
      * @param {*} value
+     * @param {boolean} [toConsole=false]
      * @returns {string}
      */
-    function dumpWithType(value) {
+    function dump(value, toConsole) {
 
-        return interpolate('{0} >>>{1}<<<', getType(value), value);
+        var text = '{' + getType(value) + '}<' + value + '>';
+
+        if (toConsole && console) {
+            isFunction(console.log) && console.log(text);
+            isFunction(console.debug) && console.debug(value);
+        }
+
+        return text;
+
+    }
+
+
+
+    /**
+     * Estende uma classe (construtor).
+     *
+     * @param {function} subConstructor Subclasse
+     * @param {?function} [superConstructor] Superclasse
+     * @param {?object} [instanceMembers] Protótipo da subclasse
+     * @param {?object} [staticMembers] Membros estáticos
+     * @return {function} Referência à subclasse, por conveniência
+     */
+    function extendConstructor(subConstructor, superConstructor, instanceMembers, staticMembers) {
+
+        var name,
+            asserts = jsx.asserts;
+
+        //#ifndef BUILD
+        asserts.assertRange(arguments.length, 2, 4);
+        //#endif
+
+        asserts.assertFunction(subConstructor);
+        superConstructor != null && asserts.assertFunction(superConstructor);
+        instanceMembers != null && asserts.assertObject(instanceMembers);
+        staticMembers != null && asserts.assertObject(staticMembers);
+
+        // Estamos estendendo um superConstrutor?
+        if (superConstructor) {
+            // Herdando membros estáticos
+            for (name in superConstructor) {
+                if (superConstructor.hasOwnProperty(name) && !(name in subConstructor)) {
+                    subConstructor[name] = superConstructor[name];
+                }
+            }
+
+            // Herdando membros de instância
+            subConstructor.prototype = Object.create(superConstructor.prototype);
+            subConstructor.prototype.constructor = subConstructor;
+        }
+
+        // Sobrescrevendo membros estáticos
+        if (staticMembers) {
+            for (name in staticMembers) {
+                if (staticMembers.hasOwnProperty(name)) {
+                    subConstructor[name] = staticMembers[name];
+                }
+            }
+        }
+
+        // Sobrescrevendo membros de instância
+        if (instanceMembers) {
+            for (name in instanceMembers) {
+                if (instanceMembers.hasOwnProperty(name)) {
+                    subConstructor.prototype[name] = instanceMembers[name];
+                }
+            }
+        }
+
+        return subConstructor;
 
     }
 
@@ -266,80 +336,9 @@
 
     }
 
-    /**
-     * Estende uma classe (construtor).
-     *
-     * @param {Function} sub Subclasse
-     * @param {Function} base Superclasse
-     * @param {Object} [prototype] Protótipo da subclasse
-     * @param {Object} [staticMembers] Membros estáticos
-     * @return {Function} Referência à subclasse, por conveniência
-     */
-    function extendCosntructor(sub, base, prototype, staticMembers) {
-
-        var name;
-
-        // Herdando membros estáticos
-        for (name in base) {
-            if (base.hasOwnProperty(name) && !(name in sub)) {
-                sub[name] = base[name];
-            }
-        }
-
-        // Sobrescrevendo membros estáticos
-        for (name in staticMembers) {
-            if (staticMembers.hasOwnProperty(name)) {
-                sub[name] = staticMembers[name];
-            }
-        }
-
-        // Herdando membros de instância
-        function __() {
-            try {
-                Object.defineProperty(this, 'constructor', {
-                    enumerable: false,
-                    writable: true,
-                    configurable: true
-                });
-            } finally {
-                this.constructor = sub;
-            }
-        }
-        __.prototype = base.prototype;
-        sub.prototype = new __();
-
-        // Sobrescrevendo membros de instância
-        for (name in prototype) {
-            if (prototype.hasOwnProperty(name)) {
-                sub.prototype[name] = prototype[name];
-            }
-        }
-
-        return sub;
-
-    }
 
 
-    /**
-     * Adiciona caracteres à esquerda.
-     *
-     * @param {String} str
-     * @param character
-     * @param {Number} length
-     * @returns {string}
-     */
-    function padLeft(str, character, length) {
 
-        character = ensureString(character);
-        str = ensureString(str);
-
-        while (str.length < length) {
-            str = character + str;
-        }
-
-        return str;
-
-    }
 
     /**
      * Garante que um valor será sempre string.
@@ -404,80 +403,7 @@
 
     }
 
-    /**
-     *
-     * @param {string} text
-     * @param {RegExp} [stopwordsPattern]
-     * @returns {string}
-     */
-    function toTitleCase(text, stopwordsPattern) {
 
-        // a-Z, com/sem acentos (apenas os caracteres que tem correspondentes com/sem case)
-        //[a-zA-Z\u00C0-\u00CF\u00D1-\u00DC\u00E0-\u00EF\u00F1-\u00FC]
-
-        // A-Z
-        // [A-Z\u00C0-\u00CF\u00D1-\u00DC]
-
-        var _stopwordsPattern = stopwordsPattern == null ? toTitleCase.PORTUGUESE_STOPWORDS_PATTERN : stopwordsPattern;
-
-        if (!(_stopwordsPattern instanceof RegExp)) {
-            throw new Error('toTitleCase(): stopwordsPattern argument, if provided, must be a RegExp.');
-        }
-
-        text = ensureString(text);
-
-        return text.replace(/([0-9a-zA-Z\u00C0-\u00CF\u00D1-\u00DC\u00E0-\u00EF\u00F1-\u00FC]+[^\s-]*) */g, function (e, n, r, i) {
-            return r > 0 && r + n.length !== i.length && n.search(_stopwordsPattern) > -1 && i.charAt(r - 2) !== ":" && i.charAt(r - 1).search(/[^\s-]/) < 0 ? e.toLowerCase() : n.substr(1).search(/[A-Z\u00C0-\u00CF\u00D1-\u00DC]|\../) > -1 ? e : e.charAt(0).toUpperCase() + e.substr(1);
-        });
-
-    }
-    toTitleCase.PORTUGUESE_STOPWORDS_PATTERN = /^(e|ou|[dn]?[ao](?:s|\(s\))?|[dn][ao]s?\([ao]s?\)|n?um(?:as?|a\(s?\)|\(as?\))?|em|de|para|por|pel[ao](?:s|\(s\))?|mas|etc|se(?:n(?:a|ã)o)?|como?|vs?\.?|via|n[º\.]|que|seja)$/i;
-
-    /**
-     *
-     * @param {string} text
-     * @returns {string}
-     */
-    var removeDiacritics = (function(){
-
-        var diacritics = [
-            [/[\u00C0-\u00C6]/g, 'A'],  //[/[\300-\306]/g, 'A'],
-            [/[\u00E0-\u00E6]/g, 'a'],  //[/[\340-\346]/g, 'a'],
-            [/[\u00C8-\u00CB]/g, 'E'],  //[/[\310-\313]/g, 'E'],
-            [/[\u00E8-\u00EB]/g, 'e'],  //[/[\350-\353]/g, 'e'],
-            [/[\u00CC-\u00CF]/g, 'I'],  //[/[\314-\317]/g, 'I'],
-            [/[\u00EC-\u00EF]/g, 'i'],  //[/[\354-\357]/g, 'i'],
-            [/[\u00D2-\u00D8]/g, 'O'],  //[/[\322-\330]/g, 'O'],
-            [/[\u00F2-\u00F8]/g, 'o'],  //[/[\362-\370]/g, 'o'],
-            [/[\u00D9-\u00DC]/g, 'U'],  //[/[\331-\334]/g, 'U'],
-            [/[\u00F9-\u00FC]/g, 'u'],  //[/[\371-\374]/g, 'u'],
-            [/[\u00D1]/g, 'N'],         //[/[\321]/g, 'N'],
-            [/[\u00F1]/g, 'n'],         //[/[\361]/g, 'n'],
-            [/[\u00C7]/g, 'C'],         //[/[\307]/g, 'C'],
-            [/[\u00E7]/g, 'c'],         //[/[\347]/g, 'c'],
-            [/[\u00FF]/g, 'y']          //[/[\377]/g, 'y']
-        ];
-
-        /**
-         *
-         * @param {string} text
-         * @returns {string}
-         */
-        return function(text) {
-
-            var i;
-
-            text = ensureString(text);
-
-            for (i = 0; i < diacritics.length; i++) {
-                text = text.replace(diacritics[i][0], diacritics[i][1]);
-            }
-
-            return text;
-
-        }
-
-    })();
 
 
 
@@ -495,7 +421,7 @@
         var integer = parseInt(value, 10);
 
         if (!isNumber(integer) || String(integer) !== String(value)) {
-            message = ensureString(message).trim() || 'Value is no parsable to integer or would loose precision: ' + dumpWithType(value);
+            message = ensureString(message).trim() || 'Value is no parsable to integer or would loose precision: ' + dump(value);
             throw new IllegalTypeException(message);
         }
 
@@ -656,14 +582,16 @@
         var name,
             value;
 
-        for (name in object) {
-            if (object.hasOwnProperty(name)) {
-                value = object[name];
+        if (recursive) {
+            for (name in object) {
+                if (object.hasOwnProperty(name)) {
+                    value = object[name];
 
-                if (recursive && jsx.isPojo(value)) {
-                    freeze(value, recursive);
+                    if (isObject(value)) {
+                        freeze(value, true);
+                    }
+
                 }
-
             }
         }
 
@@ -682,14 +610,16 @@
         var name,
             value;
 
-        for (name in object) {
-            if (object.hasOwnProperty(name)) {
-                value = object[name];
+        if (recursive) {
+            for (name in object) {
+                if (object.hasOwnProperty(name)) {
+                    value = object[name];
 
-                if (recursive && jsx.isPojo(value)) {
-                    seal(value, recursive);
+                    if (isObject(value)) {
+                        seal(value, true);
+                    }
+
                 }
-
             }
         }
 
@@ -1089,7 +1019,6 @@
 
     global.jsx = {
         idFunction : idFunction,
-
         isPrimitive : isPrimitive,
         isString : isString,
         isBoolean : isBoolean,
@@ -1102,19 +1031,14 @@
         isObject : isObject,
         isPojo : isPojo,
         getType : getType,
-
-        dumpWithType : dumpWithType,
-
+        dump : dump,
+        extendConstructor : extendConstructor,
 
         Enum : Enum,
-        extendCosntructor : extendCosntructor,
 
         clone : clone,
         argsToArray : argsToArray,
-        padLeft : padLeft,
         ensureString : ensureString,
-        toTitleCase : toTitleCase,
-        removeDiacritics : removeDiacritics,
         interpolate: interpolate,
         interpolateMap: interpolateMap,
         compose : compose,
@@ -1129,4 +1053,5 @@
         unserialize : unserialize
     };
 
-})(this);
+
+})(window);
