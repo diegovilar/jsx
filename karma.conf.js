@@ -14,16 +14,16 @@ module.exports = function (config) {
 
         // list of files / patterns to load in the browser
         files: [
-            // Specs
-            'test/**/*Spec.js',
-
             // Src code
             'src/es5-custom.js',
-            'src/jsx-core.js'
+            'src/jsx-core.js',
 //            'src/jsx-asserts.js',
 //            'src/jsx-exceptions.js',
 //            'src/jsx-converters.js',
 //            'src/jsx-ng.js'
+
+            // Specs
+            'test/**/*.spec.js'
         ],
 
 
@@ -31,6 +31,14 @@ module.exports = function (config) {
         exclude: [
 
         ],
+
+
+        preprocessors: {
+            // source files, that you wanna generate coverage for
+            // do not include tests or libraries
+            // (these files will be instrumented by Istanbul)
+            'src/*.js': ['coverage']
+        },
 
 
         // test results reporter to use

@@ -2,6 +2,8 @@
 (function(global, undefined) {
     "use strict";
 
+
+
     /**
      * A function that returns its parameter
      *
@@ -13,6 +15,245 @@
         return value;
 
     }
+
+
+
+    var _primitivesRe = /^(string|number|boolean)$/;
+
+    /**
+     * Tests if the passed value is a primitive one.
+     *
+     * The following values are considered to be primitive:
+     * * Primitive string values;
+     * * Primitive boolean values;
+     * * Primitive number values, excluding NaN, +Infinity and -Infinity
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isPrimitive(value) {
+
+        var type = typeof value;
+        return _primitivesRe.test(type) && (type != 'number' || !isNaN(value) && isFinite(value));
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isString(value) {
+
+        return typeof value == 'string' || (value !== null && value instanceof String);
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isBoolean(value) {
+
+        return typeof value == 'boolean' || (value != null && value instanceof Boolean);
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isNumber(value) {
+
+        return (value != null) && (typeof value == 'number' || value instanceof Number) && !isNaN(value) && isFinite(value);
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isInteger(value) {
+
+        return isNumber(value) && parseInt(Number(value), 10) == value;
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isParsableNumber(value) {
+
+        var strValue = String(value).trim(),
+            number = Number(strValue);
+
+        return (strValue.length > 0) && isNumber(number) && (number == value);
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isParsableInteger(value) {
+
+        var number = Number(value);
+
+        return isParsableNumber(value) && isInteger(number);
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isFunction(value) {
+
+        return typeof value == 'function';
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isArray(value) {
+
+        return Array.isArray(value);
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isObject(value) {
+
+        return (value != null) && typeof value == 'object';
+
+    }
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isPojo(value) {
+
+        return isObject(value) && value.constructor === {}.constructor;
+
+    }
+
+
+
+    /**
+     * @type {function}
+     * @param {*} value
+     * @return {string}
+     */
+    var getType = (function() {
+
+        var reObjectName = /\[object (.+)\]/,
+            toString = Object.prototype.toString;
+
+
+        /**
+         *
+         * @private
+         * @param {*} object
+         * @returns {?string}
+         */
+        function getObjectConstructor(object) {
+
+            var objectString = toString.call(object),
+                match = reObjectName.exec(objectString);
+
+            return match === null ? 'Object' : match[1];
+
+        }
+
+        /**
+         * @type {function}
+         * @param {*} value
+         * @return {string}
+         */
+        function getType(value) {
+
+            var type = typeof value;
+
+            switch (type) {
+                case 'number':
+                    if (isNaN(value)) {
+                        return 'NaN'
+                    }
+                    break;
+
+                case 'object':
+                    if (value === null) {
+                        return 'null'
+                    }
+                    else if (value.constructor === Object) {
+                        return type;
+                    }
+                    else if (isFunction(value.constructor) && value.constructor.hasOwnProperty('name')) {
+                        return value.constructor.name;
+                    }
+
+                    return getObjectConstructor(value);
+                    break;
+            }
+
+            return type;
+
+        }
+
+        return getType;
+
+    })();
+
+
+
+    /**
+     *
+     * @param {*} value
+     * @returns {string}
+     */
+    function dumpWithType(value) {
+
+        return interpolate('{0} >>>{1}<<<', getType(value), value);
+
+    }
+
+
 
     /**
      *
@@ -239,123 +480,9 @@
     })();
 
 
-    /**
-     * @type {function}
-     * @param {*} value
-     * @return {string}
-     */
-    var getType = (function() {
 
-        var re = /\[object (.+)\]/;
 
-        /**
-         *
-         * @private
-         * @param {*} object
-         * @returns {?string}
-         */
-        function getObjectConstructor(object) {
 
-            var type = Object.prototype.toString.call(object),
-                match = re.exec(type);
-
-            return match === null ? null : match[1];
-
-        }
-
-        /**
-         * @type {function}
-         * @param {*} value
-         * @return {string}
-         */
-        function getType(value) {
-
-            var type = typeof value;
-
-            switch (type) {
-                case 'number':
-                    if (isNaN(value)) {
-                        return 'NaN'
-                    }
-                    break;
-
-                case 'object':
-                    if (value === null) {
-                        return 'null'
-                    }
-                    else if (value.constructor === Object) {
-                        return type;
-                    }
-                    else if (isFunction(value.constructor) && value.constructor.hasOwnProperty('name') && isString(value.constructor.name)) {
-                        return value.constructor.name;
-                    }
-
-                    return getObjectConstructor(value);
-                    break;
-            }
-
-            return type;
-
-        }
-
-        return getType;
-
-    })();
-
-    /**
-     *
-     * @param {*} value
-     * @returns {string}
-     */
-    function dumpWithType(value) {
-
-        return interpolate('{0} >>>{1}<<<', getType(value), value);
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isString(value) {
-
-        return typeof value == 'string' || (value !== null && value instanceof String);
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isNumber(value) {
-
-        return (value != null) && (typeof value == 'number' || value instanceof Number) && !isNaN(value) && isFinite(value);
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isInteger(value) {
-
-        return isNumber(value) && (parseInt(value, 10) + '') === (value + '');
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isFloat(value) {
-
-        return isNumber(value) && !isInteger(value);
-
-    }
 
     /**
      *
@@ -376,121 +503,13 @@
 
     }
 
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isParsableNumber(value) {
 
-        var number = parseFloat(value);
 
-        return isNumber(number) && (number === Number(value));
 
-    }
 
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isParsableInteger(value) {
 
-        var number = parseInt(value, 10);
 
-        return isInteger(number) && (number === Number(value));
 
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isParsableFloat(value) {
-
-        var number = parseFloat(value);
-
-        return isFloat(number) && (number === Number(value));
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isBoolean(value) {
-
-        return typeof value == 'boolean' || (value != null && value instanceof Boolean);
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isFunction(value) {
-
-        return typeof value == 'function';
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isArray(value) {
-
-        return Array.isArray ? Array.isArray(value) : value && value instanceof Array;
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isObject(value) {
-
-        return value && typeof value == 'object';
-
-    }
-
-    /**
-     *
-     * @param {*} value
-     * @returns {boolean}
-     */
-    function isPojo(value) {
-
-        return isObject(value) && value.constructor === {}.constructor;
-
-    }
-
-    /**
-     * @type {Function}
-     */
-    var isPrimitive = (function() {
-
-        var _primitivesRe = /^(string|number|boolean)$/;
-
-        /**
-         *
-         * @param {*} value
-         * @returns {boolean}
-         */
-        function isPrimitive(value) {
-
-            return _primitivesRe.test(typeof value);
-
-        }
-
-        return isPrimitive;
-
-    })();
 
     /**
      *
@@ -1069,10 +1088,26 @@
 
 
     global.jsx = {
+        idFunction : idFunction,
+
+        isPrimitive : isPrimitive,
+        isString : isString,
+        isBoolean : isBoolean,
+        isNumber : isNumber,
+        isInteger : isInteger,
+        isParsableNumber : isParsableNumber,
+        isParsableInteger : isParsableInteger,
+        isFunction : isFunction,
+        isArray : isArray,
+        isObject : isObject,
+        isPojo : isPojo,
+        getType : getType,
+
+        dumpWithType : dumpWithType,
+
+
         Enum : Enum,
         extendCosntructor : extendCosntructor,
-
-        idFunction : idFunction,
 
         clone : clone,
         argsToArray : argsToArray,
@@ -1082,24 +1117,7 @@
         removeDiacritics : removeDiacritics,
         interpolate: interpolate,
         interpolateMap: interpolateMap,
-        dumpWithType : dumpWithType,
-        getType : getType,
         compose : compose,
-
-        isPojo : isPojo,
-
-        isPrimitive : isPrimitive,
-        isString : isString,
-        isNumber : isNumber,
-        isParsableNumber : isParsableNumber,
-        isInteger : isInteger,
-        isParsableInteger : isParsableInteger,
-        isFloat : isFloat,
-        isParsableFloat : isParsableFloat,
-        isBoolean : isBoolean,
-        isFunction : isFunction,
-        isArray : isArray,
-        isObject : isObject,
 
         seal : seal,
         freeze : freeze,

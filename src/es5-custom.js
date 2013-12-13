@@ -5,6 +5,7 @@
  * Shims:
  *
  * - Function.prototype.bind
+ * - Array.prototype.isArray
  *
  * Shams:
  *
@@ -21,6 +22,9 @@
     function id(x) {return x}
     function returnFalse() {return false}
     var _Array_slice_ = Array.prototype.slice;
+    var call = Function.prototype.call;
+    var prototypeOfObject = Object.prototype;
+    var _toString = call.bind(prototypeOfObject.toString);
 
     if (!Function.prototype.bind) {
         Function.prototype.bind = function bind(that) { // .length is 1
@@ -197,6 +201,15 @@
     // http://es5.github.com/#x15.2.3.12
     if (!Object.isFrozen) {
         Object.isFrozen = returnFalse;
+    }
+
+    // ES5 15.4.3.2
+    // http://es5.github.com/#x15.4.3.2
+    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/isArray
+    if (!Array.isArray) {
+        Array.isArray = function isArray(obj) {
+            return _toString(obj) == "[object Array]";
+        };
     }
 
 })();

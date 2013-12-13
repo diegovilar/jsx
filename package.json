@@ -6,8 +6,8 @@
   "main": "build\\jsx.js",
   "scripts": {
     "prepublish": "npm test",
-    "test": "node_modules\\.bin\\karma start karma-conf.js --no-auto-watch",
-    "autotest": "node_modules\\.bin\\karma start karma-conf.js --auto-watch"
+    "test": "node_modules\\.bin\\karma start karma.conf.js --no-auto-watch --single-run",
+    "autotest": "node_modules\\.bin\\karma start karma.conf.js --auto-watch --no-single-run"
   },
   "repository": {
     "type": "git",

@@ -14,5 +14,7 @@ results
 npm-debug.log
 node_modules
 
-./idea/workspace.xml
+./.idea/workspace.xml
 /coverage
+/.idea/dictionaries
+/.idea/workspace.xml
