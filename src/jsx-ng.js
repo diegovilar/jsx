@@ -1,7 +1,7 @@
 (function(global, jsx) {
     "use strict";
 
-    var argsToArray = jsx.argsToArray;
+    var argsToArray = utils.argsToArray;
 
 
     function createLazyModule() {
@@ -14,9 +14,9 @@
             '$controllerProvider',
             '$compileProvider',
             '$filterProvider',
-            '$animationProvider',
+            //'$animationProvider',
 
-            function ($provide, $controllerProvider, $compileProvider, $filterProvider, $animationProvider) {
+            function ($provide, $controllerProvider, $compileProvider, $filterProvider /*, $animationProvider*/) {
 
                 // Externando métodos de $provide no módulo para lazyload
                 ['constant', 'factory', 'provider', 'service', 'value'].forEach(function (method) {
@@ -35,9 +35,9 @@
                 module.filter = function () {
                     return $filterProvider.register.apply($filterProvider, argsToArray(arguments));
                 };
-                module.animation = function () {
+                /*module.animation = function () {
                     return $animationProvider.register.apply($animationProvider, argsToArray(arguments));
-                };
+                };*/
 
             }
         ]);
@@ -73,6 +73,7 @@
 
         var pinners = {};
 
+        // TODO ter assinatura semelhante a do Function.bind para aceitar argumentos
         function pinToScope(scope, subject, context) {
 
             var pinner = this.getPinner(scope);

@@ -1,5 +1,12 @@
-//noinspection ThisExpressionReferencesGlobalObjectJS
-(function(global, undefined) {
+/*!
+ * $PROJECT_NAME$ v$PROJECT_VERSION$
+ * Built on $PROJECT_BUILD_TIME$
+ * $PROJECT_HOMEPAGE$
+ *
+ * $PROJECT_LICENSE$
+ */
+
+(function(undefined) {
     "use strict";
 
 
@@ -183,8 +190,7 @@
     var getType = (function() {
 
         var reObjectName = /\[object (.+)\]/,
-            toString = Object.prototype.toString,
-            OBJECT = 'object';
+            toString = Object.prototype.toString;
 
 
         /**
@@ -198,7 +204,7 @@
             var objectString = toString.call(object),
                 match = reObjectName.exec(objectString);
 
-            return match === null ? OBJECT : match[1] === 'Object' ? OBJECT : match[1];
+            return match === null ? 'Object' : match[1];
 
         }
 
@@ -218,14 +224,14 @@
                     }
                     break;
 
-                case OBJECT:
+                case 'object':
                     if (value === null) {
                         return 'null'
                     }
                     else if (value.constructor === Object) {
                         return type;
                     }
-                    else if (isFunction(value.constructor) && value.constructor.hasOwnProperty('name')) {
+                    else if (isFunction(value.constructor) && Function.name) {
                         return value.constructor.name;
                     }
 
@@ -244,101 +250,124 @@
 
 
     /**
-     *
-     * @param {*} value
-     * @param {boolean} [toConsole=false]
-     * @returns {string}
+     * Does nothing (no operation)
      */
-    function dump(value, toConsole) {
-
-        var text = '{' + getType(value) + '}<' + value + '>';
-
-        if (toConsole && console) {
-            isFunction(console.log) && console.log(text);
-            isFunction(console.debug) && console.debug(value);
-        }
-
-        return text;
+    function noop(){
 
     }
-
-
-
-    /**
-     * Estende uma classe (construtor).
-     *
-     * @param {function} subConstructor Subclasse
-     * @param {?function} [superConstructor] Superclasse
-     * @param {?object} [instanceMembers] Protótipo da subclasse
-     * @param {?object} [staticMembers] Membros estáticos
-     * @return {function} Referência à subclasse, por conveniência
-     */
-    function extendConstructor(subConstructor, superConstructor, instanceMembers, staticMembers) {
-
-        var name,
-            asserts = jsx.asserts;
-
-        //#ifndef BUILD
-        asserts.assertRange(arguments.length, 2, 4);
-        //#endif
-
-        asserts.assertFunction(subConstructor);
-        superConstructor != null && asserts.assertFunction(superConstructor);
-        instanceMembers != null && asserts.assertObject(instanceMembers);
-        staticMembers != null && asserts.assertObject(staticMembers);
-
-        // Estamos estendendo um superConstrutor?
-        if (superConstructor) {
-            // Herdando membros estáticos
-            for (name in superConstructor) {
-                if (superConstructor.hasOwnProperty(name) && !(name in subConstructor)) {
-                    subConstructor[name] = superConstructor[name];
-                }
-            }
-
-            // Herdando membros de instância
-            subConstructor.prototype = Object.create(superConstructor.prototype);
-            subConstructor.prototype.constructor = subConstructor;
-        }
-
-        // Sobrescrevendo membros estáticos
-        if (staticMembers) {
-            for (name in staticMembers) {
-                if (staticMembers.hasOwnProperty(name)) {
-                    subConstructor[name] = staticMembers[name];
-                }
-            }
-        }
-
-        // Sobrescrevendo membros de instância
-        if (instanceMembers) {
-            for (name in instanceMembers) {
-                if (instanceMembers.hasOwnProperty(name)) {
-                    subConstructor.prototype[name] = instanceMembers[name];
-                }
-            }
-        }
-
-        return subConstructor;
-
-    }
-
 
 
     /**
      *
      * @param {Arguments} argumentsObject
+     * @param {number} [from=0]
      * @returns {Array}
      */
-    function argsToArray(argumentsObject) {
+    function argsToArray(argumentsObject, from) {
 
-        return [].slice.call(argumentsObject, 0);
+        return [].slice.call(argumentsObject, from || 0);
 
     }
 
+    /**
+     * Estende uma classe (construtor).
+     *
+     * @param {Function} sub Subclasse
+     * @param {Function} base Superclasse
+     * @param {Object} [prototype] Protótipo da subclasse
+     * @param {Object} [staticMembers] Membros estáticos
+     * @return {Function} Referência à subclasse, por conveniência
+     */
+    function extendCosntructor(sub, base, prototype, staticMembers) {
 
+        var name;
 
+        // Herdando membros estáticos
+        for (name in base) {
+            if (base.hasOwnProperty(name) && !(name in sub)) {
+                sub[name] = base[name];
+            }
+        }
 
+        // Sobrescrevendo membros estáticos
+        for (name in staticMembers) {
+            if (staticMembers.hasOwnProperty(name)) {
+                sub[name] = staticMembers[name];
+            }
+        }
+
+        // Herdando membros de instância
+        function __() {
+            try {
+                Object.defineProperty(this, 'constructor', {
+                    enumerable: false,
+                    writable: true,
+                    configurable: true
+                });
+            } finally {
+                this.constructor = sub;
+            }
+        }
+        __.prototype = base.prototype;
+        sub.prototype = new __();
+
+        // Sobrescrevendo membros de instância
+        for (name in prototype) {
+            if (prototype.hasOwnProperty(name)) {
+                sub.prototype[name] = prototype[name];
+            }
+        }
+
+        return sub;
+
+    }
+
+    /**
+     * @deprecated
+     * @param constructor
+     * @returns {BypassConstructor}
+     */
+    function instantiateBypassingConstructor(constructor) {
+
+        if (typeof constructor != 'function') {
+            throw new TypeError('Parameter must be a function.');
+        }
+
+        function BypassConstructor() {
+            this.constructor = constructor;
+        }
+
+        BypassConstructor.prototype = constructor.prototype;
+
+        // Useless, it's not writable
+        /*if (constructor.name) {
+            BypassConstructor.name = constructor.name;
+        }*/
+
+        return new BypassConstructor();
+
+    }
+
+    /**
+     * Adiciona caracteres à esquerda.
+     *
+     * @param {String} str
+     * @param character
+     * @param {Number} length
+     * @returns {string}
+     */
+    function padLeft(str, character, length) {
+
+        character = ensureString(character);
+        str = ensureString(str);
+
+        while (str.length < length) {
+            str = character + str;
+        }
+
+        return str;
+
+    }
 
     /**
      * Garante que um valor será sempre string.
@@ -403,12 +432,147 @@
 
     }
 
+    /**
+     *
+     * @param {string} text
+     * @param {RegExp} [stopwordsPattern]
+     * @returns {string}
+     */
+    function toTitleCase(text, stopwordsPattern) {
+
+        // a-Z, com/sem acentos (apenas os caracteres que tem correspondentes com/sem case)
+        //[a-zA-Z\u00C0-\u00CF\u00D1-\u00DC\u00E0-\u00EF\u00F1-\u00FC]
+
+        // A-Z
+        // [A-Z\u00C0-\u00CF\u00D1-\u00DC]
+
+        var _stopwordsPattern = stopwordsPattern == null ? toTitleCase.PORTUGUESE_STOPWORDS_PATTERN : stopwordsPattern;
+
+        if (!(_stopwordsPattern instanceof RegExp)) {
+            throw new Error('toTitleCase(): stopwordsPattern argument, if provided, must be a RegExp.');
+        }
+
+        text = ensureString(text);
+
+        return text.replace(/([0-9a-zA-Z\u00C0-\u00CF\u00D1-\u00DC\u00E0-\u00EF\u00F1-\u00FC]+[^\s-]*) */g, function (e, n, r, i) {
+            return r > 0 && r + n.length !== i.length && n.search(_stopwordsPattern) > -1 && i.charAt(r - 2) !== ":" && i.charAt(r - 1).search(/[^\s-]/) < 0 ? e.toLowerCase() : n.substr(1).search(/[A-Z\u00C0-\u00CF\u00D1-\u00DC]|\../) > -1 ? e : e.charAt(0).toUpperCase() + e.substr(1);
+        });
+
+    }
+    toTitleCase.PORTUGUESE_STOPWORDS_PATTERN = /^(e|ou|[dn]?[ao](?:s|\(s\))?|[dn][ao]s?\([ao]s?\)|n?um(?:as?|a\(s?\)|\(as?\))?|em|de|para|por|pel[ao](?:s|\(s\))?|mas|etc|se(?:n(?:a|ã)o)?|como?|vs?\.?|via|n[º\.]|que|seja)$/i;
+
+    /**
+     *
+     * @param {string} text
+     * @returns {string}
+     */
+    var removeDiacritics = (function(){
+
+        var diacritics = [
+            [/[\u00C0-\u00C6]/g, 'A'],  //[/[\300-\306]/g, 'A'],
+            [/[\u00E0-\u00E6]/g, 'a'],  //[/[\340-\346]/g, 'a'],
+            [/[\u00C8-\u00CB]/g, 'E'],  //[/[\310-\313]/g, 'E'],
+            [/[\u00E8-\u00EB]/g, 'e'],  //[/[\350-\353]/g, 'e'],
+            [/[\u00CC-\u00CF]/g, 'I'],  //[/[\314-\317]/g, 'I'],
+            [/[\u00EC-\u00EF]/g, 'i'],  //[/[\354-\357]/g, 'i'],
+            [/[\u00D2-\u00D8]/g, 'O'],  //[/[\322-\330]/g, 'O'],
+            [/[\u00F2-\u00F8]/g, 'o'],  //[/[\362-\370]/g, 'o'],
+            [/[\u00D9-\u00DC]/g, 'U'],  //[/[\331-\334]/g, 'U'],
+            [/[\u00F9-\u00FC]/g, 'u'],  //[/[\371-\374]/g, 'u'],
+            [/[\u00D1]/g, 'N'],         //[/[\321]/g, 'N'],
+            [/[\u00F1]/g, 'n'],         //[/[\361]/g, 'n'],
+            [/[\u00C7]/g, 'C'],         //[/[\307]/g, 'C'],
+            [/[\u00E7]/g, 'c'],         //[/[\347]/g, 'c'],
+            [/[\u00FF]/g, 'y']          //[/[\377]/g, 'y']
+        ];
+
+        /**
+         *
+         * @param {string} text
+         * @returns {string}
+         */
+        return function(text) {
+
+            var i;
+
+            text = ensureString(text);
+
+            for (i = 0; i < diacritics.length; i++) {
+                text = text.replace(diacritics[i][0], diacritics[i][1]);
+            }
+
+            return text;
+
+        }
+
+    })();
+
+    /**
+     * @deprecated Use {@link isNumber}
+     * @param value
+     * @returns {boolean}
+     */
+    function isValidNumber(value) {
+
+        return (typeof value == 'number') && !isNaN(value) && isFinite(value);
+
+    }
+
+    /**
+     * @deprecated
+     * @param {object|Array} object
+     * @return {object|Array}
+     */
+    function sealObjectRecursively(object) {
+
+        return seal(object, true);
+
+        /*var name,
+            value,
+            type;
+
+        for (name in object) {
+            if (object.hasOwnProperty(name)) {
+                value = object[name];
+                type = typeof object;
+
+                if (value && (isPojo(value) || Array.isArray(value))) {
+                    sealObjectRecursively(value);
+                }
+
+            }
+        }
+
+        Object.seal(object);
+        return object;*/
+
+    }
 
 
 
+    /**
+     *
+     * @param {*} value
+     * @returns {string}
+     */
+    function dumpWithType(value) {
+
+        return interpolate('{0} >>>{1}<<<', getType(value), value);
+
+    }
 
 
 
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isFloat(value) {
+
+        return isNumber(value) && !isInteger(value);
+
+    }
 
     /**
      *
@@ -421,7 +585,7 @@
         var integer = parseInt(value, 10);
 
         if (!isNumber(integer) || String(integer) !== String(value)) {
-            message = ensureString(message).trim() || 'Value is no parsable to integer or would loose precision: ' + dump(value);
+            message = ensureString(message).trim() || 'Value is no parsable to integer or would loose precision: ' + dumpWithType(value);
             throw new IllegalTypeException(message);
         }
 
@@ -431,9 +595,18 @@
 
 
 
+    /**
+     *
+     * @param {*} value
+     * @returns {boolean}
+     */
+    function isParsableFloat(value) {
 
+        var number = parseFloat(value);
 
+        return isFloat(number) && (number === Number(value));
 
+    }
 
 
 
@@ -572,6 +745,29 @@
 
     })();
 
+    function merge(destObject) {
+
+        if (!isObject(destObject)) {
+            throw new Error('Object expected');
+        }
+
+        var i = 1,
+            len = arguments.length,
+            other;
+        for (; i < len; i++) {
+            other = arguments[i];
+
+            if (isObject(other)) {
+
+                // TODO
+
+            }
+        }
+
+        return destObject;
+
+    }
+
     /**
      * @param {Object} object
      * @param {boolean} [recursive=false]
@@ -582,16 +778,14 @@
         var name,
             value;
 
-        if (recursive) {
-            for (name in object) {
-                if (object.hasOwnProperty(name)) {
-                    value = object[name];
+        for (name in object) {
+            if (object.hasOwnProperty(name)) {
+                value = object[name];
 
-                    if (isObject(value)) {
-                        freeze(value, true);
-                    }
-
+                if (recursive && jsx.isPojo(value)) {
+                    freeze(value, recursive);
                 }
+
             }
         }
 
@@ -610,16 +804,14 @@
         var name,
             value;
 
-        if (recursive) {
-            for (name in object) {
-                if (object.hasOwnProperty(name)) {
-                    value = object[name];
+        for (name in object) {
+            if (object.hasOwnProperty(name)) {
+                value = object[name];
 
-                    if (isObject(value)) {
-                        seal(value, true);
-                    }
-
+                if (recursive && jsx.isPojo(value)) {
+                    seal(value, recursive);
                 }
+
             }
         }
 
@@ -766,7 +958,7 @@
 
     })();
 
-    var unserialize = (function() {
+    var deserialize = (function() {
 
         var _reMatcher = /\/(.*)\/([^\/]*)/;
 
@@ -797,7 +989,7 @@
                     item = descriptor.value;
                     var i = 0, len = item.length;
                     for (; i < len; i++) {
-                        item[i] = postUnserialize(item[i], constructors);
+                        item[i] = postdeserialize(item[i], constructors);
                     }
                     break;
                 case 'Date':
@@ -822,8 +1014,8 @@
 
                     jsx.asserts.assertFunction(constructor, 'Could not find constructor for type ' + descriptor.type);
 
-                    if (isFunction(constructor.unserialize)) {
-                        return constructor.unserialize(descriptor.value);
+                    if (isFunction(constructor.deserialize)) {
+                        return constructor.deserialize(descriptor.value);
                     }
 
                     item = Object.create(constructor.prototype);
@@ -840,7 +1032,7 @@
 
         }
 
-        return function unserialize(value, constructors) {
+        return function deserialize(value, constructors) {
 
             var parsed = JSON.parse(value);
 
@@ -879,9 +1071,14 @@
             }
             else {
                 descriptor.writable = mode.indexOf('w') > -1;
+
+                if (value !== undefined) {
+                    descriptor.value = value; /* Fix para SM-136 */
+                }
             }
 
             Object.defineProperty(context, name, descriptor);
+
         }
 
         /**
@@ -934,9 +1131,6 @@
 
             _defineProperty(context, name, mode, setter, getter);
 
-            // Comodidade para permitir encadeamento
-            return this;
-
         }
 
         return defineProperty;
@@ -951,97 +1145,119 @@
     function getDefiner(context) {
 
         return function() {
-            return defineProperty.apply(null, [context].concat(jsx.argsToArray(arguments)));
+            defineProperty.apply(null, [context].concat(jsx.argsToArray(arguments)));
         }
 
     }
 
 
-    var Enum = (function() {
 
-        /**
-         * @param {...string} value
-         * @constructor
-         */
-        function Enum(value){
+    //region << Enum >>
 
-            var i = 0,
-                len = arguments.length;
-            for (; i < len; i++) {
-                value = String(arguments[i]);
-                this[value] = value;
-                defineProperty(this, value, 'e');
+    /**
+     * @param {...string} value
+     * @constructor
+     */
+    function Enum(value) {
+
+        this._values = [];
+
+        var i = 0,
+            len = arguments.length;
+        for (; i < len; i++) {
+            value = String(arguments[i]);
+
+            if (this.hasOwnProperty(value)) {
+                throw new Error('Enum: duplicate value (' + value + ')');
             }
 
-            seal(this, true);
-
+            this[value] = value;
+            defineProperty(this, value, 'e');
+            this._values.push(value);
         }
+
+        defineProperty(this, '_values', '');
+
+        seal(this, true);
+
+    }
+
+    Enum.prototype = {
 
         /**
          *
          * @returns {string}
          */
-        Enum.prototype.toString = function() {
+        toString : function () {
 
             return '[object Enum]';
 
-        };
+        },
 
         /**
          *
          * @returns {Array.<string>}
          */
-        Enum.prototype.toArray = function() {
+        toArray : function () {
 
-            var result = [];
+            return this._values.slice(0);
 
-            var key;
-            for (key in this) {
-                if (this.hasOwnProperty(key)) {
-                    result.push(key);
-                }
-            }
+        },
 
-            return result;
-
-        };
-
-        Enum.prototype.is = function(value){
+        /**
+         *
+         * @param {*} value
+         * @returns {boolean}
+         */
+        is : function (value) {
 
             return this.hasOwnProperty(value);
 
-        };
+        }
 
-        return Enum;
+    };
+    Enum.prototype.constructor = Enum;
 
-    })();
+    //endregion << Enum >>
 
 
-    global.jsx = {
+
+    window.jsx = {
+        /**
+         * @
+         */
+        Enum : Enum,
+
+        noop : noop,
         idFunction : idFunction,
+        clone : clone,
+        merge : merge,
+        argsToArray : argsToArray,
+        extendCosntructor : extendCosntructor,
+        padLeft : padLeft,
+        ensureString : ensureString,
+        toTitleCase : toTitleCase,
+        removeDiacritics : removeDiacritics,
+        interpolate: interpolate,
+        interpolateMap: interpolateMap,
+        dumpWithType : dumpWithType,
+        getType : getType,
+        compose : compose,
+
+        isPojo : isPojo,
+
         isPrimitive : isPrimitive,
         isString : isString,
-        isBoolean : isBoolean,
         isNumber : isNumber,
-        isInteger : isInteger,
         isParsableNumber : isParsableNumber,
+        isInteger : isInteger,
         isParsableInteger : isParsableInteger,
+        isFloat : isFloat,
+        isParsableFloat : isParsableFloat,
+        isBoolean : isBoolean,
         isFunction : isFunction,
         isArray : isArray,
         isObject : isObject,
-        isPojo : isPojo,
-        getType : getType,
-        dump : dump,
-        extendConstructor : extendConstructor,
-
-        Enum : Enum,
-
-        clone : clone,
-        argsToArray : argsToArray,
-        ensureString : ensureString,
-        interpolate: interpolate,
-        interpolateMap: interpolateMap,
-        compose : compose,
 
         seal : seal,
         freeze : freeze,
@@ -1050,8 +1266,37 @@
         defineProperty : defineProperty,
 
         serialize : serialize,
-        unserialize : unserialize
+        deserialize : deserialize,
+
+        /**
+         * @deprecated
+         */
+        replaceMap: interpolateMap,
+
+        /**
+         * @deprecated
+         */
+        isValidNumber : isValidNumber,
+
+        /**
+         * @deprecated
+         */
+        instantiateBypassingConstructor : instantiateBypassingConstructor,
+
+        /**
+         * @deprecated
+         */
+        sealObjectRecursively : sealObjectRecursively
     };
 
+    /**
+     * @deprecated
+     */
+    window.jsutils = window.jsx;
 
-})(window);
+    /**
+     * @deprecated
+     */
+    window.utils = window.jsx;
+
+})();

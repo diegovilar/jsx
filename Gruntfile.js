@@ -3,21 +3,30 @@ var utils = require('./build-utils');
 module.exports = function (grunt) {
 
     var pkg = grunt.file.readJSON('package.json'),
+        filesToPreprocess = 'js,ts,css,scss,xml,xhtml,html,html,shtml',
         srcDir = './src',
         buildDir = './build',
-        version = pkg.version;
+        distDir = './dist',
+        buildTime = new Date();
+
+    var version = utils.version.parse(pkg.version),
+        versionString = utils.version.getCacheKey(version);
 
     // Forçamos concat e outros plugins a usarem LF sempre
     grunt.util.linefeed = '\n';
 
+    require('load-grunt-tasks')(grunt);
+
     grunt.initConfig({
         pkg: pkg,
 
-        buildDir: buildDir,
         srcDir: srcDir,
+        buildDir: buildDir,
+        distDir: distDir,
 
         clean: {
-            build: [buildDir]
+            build: [buildDir],
+            dist: [distDir]
         },
 
         // Duplicate source for following building tasks
@@ -27,13 +36,6 @@ module.exports = function (grunt) {
                 files: [
                     {expand: true, cwd: '<%= srcDir %>/', src: ['**'], dest: '<%= buildDir %>/'}
                 ]
-            }
-        },
-
-        rename: {
-            htaccess: {
-                src: '<%= buildDir %>/build.htaccess',
-                dest: '<%= buildDir %>/.htaccess'
             }
         },
 
@@ -54,10 +56,10 @@ module.exports = function (grunt) {
                         to: "<%= pkg.homepage %>"
                     },{
                         from: "$PROJECT_VERSION$",
-                        to: version
+                        to: versionString
                     },{
                         from: "$PROJECT_BUILD_TIME$",
-                        to: (new Date()).toUTCString()
+                        to: buildTime.toISOString()
                     },{
                         from: "$PROJECT_LICENSE$",
                         to: "<%= pkg.license %>"
@@ -66,44 +68,71 @@ module.exports = function (grunt) {
             }
         },
 
-        // Javascript compresion
-        uglify: {
-            options: {
-                mangle: true,
-                compress: true,
-                preserveComments: 'some'
-            },
-
+        ppem : {
             build: {
-                options: {
-                    report: 'gzip'
+                baseDir: "<%= buildDir %>",
+                verbose: false,
+                defines: {
+                    BUILD: true
                 },
                 files : [{
                     expand : true,
                     cwd : '<%= buildDir %>',
                     dest : '<%= buildDir %>',
-                    src : ['**/*.js']
+                    src : ['*.{' + filesToPreprocess + '}']
                 }]
+
+            }
+        },
+
+        // Javascript compresion
+        uglify: {
+            dev: {
+                options: {
+                    beautify: true,
+                    mangle: false,
+                    compress: false,
+                    preserveComments: 'all'
+                },
+                files : {
+                    '<%= buildDir %>/jsx.js' : [
+                        '<%= buildDir %>/jsx-core.js',
+                        '<%= buildDir %>/jsx-exceptions.js',
+                        '<%= buildDir %>/jsx-asserts.js',
+                        '<%= buildDir %>/jsx-converters.js',
+                        '<%= buildDir %>/jsx-ng.js'
+                    ]
+                }
+            },
+            min: {
+                options: {
+                    report: 'gzip',
+                    sourceMap: true,
+                    mangle: true,
+                    compress: {
+                        drop_console: true
+                    },
+                    preserveComments: 'some'
+                },
+                files : {
+                    '<%= buildDir %>/jsx.min.js' : [
+                        '<%= buildDir %>/jsx-core.js',
+                        '<%= buildDir %>/jsx-exceptions.js',
+                        '<%= buildDir %>/jsx-asserts.js',
+                        '<%= buildDir %>/jsx-converters.js',
+                        '<%= buildDir %>/jsx-ng.js'
+                    ]
+                }
             }
         }
     });
-
-    grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-copy');
-    grunt.loadNpmTasks('grunt-rename');
-    grunt.loadNpmTasks('grunt-text-replace');
-    grunt.loadNpmTasks('grunt-contrib-uglify');
 
     grunt.registerTask('build', [
         'clean:build',
         'copy:build',
         'ppem:build',
-        'sass:build',
-        'clean:postBuild',
         'replace:build',
-        'uglify:build',
-        'clean:htaccess',
-        'rename'
+        'uglify'
     ]);
     grunt.registerTask('default', 'build');
 };

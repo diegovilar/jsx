@@ -1,4 +1,3 @@
-//noinspection ThisExpressionReferencesGlobalObjectJS
 (function(global, jsx) {
     "use strict";
 
@@ -148,6 +147,12 @@
     extendCosntructor(TransformationException, Exception);
 
 
+    function ValidationException(message) {
+        Exception.apply(this, argsToArray(arguments));
+        this.name = 'ValidationException';
+    }
+    extendCosntructor(ValidationException, Exception);
+
 
     function IOException(message) {
         Exception.apply(this, argsToArray(arguments));
@@ -288,6 +293,7 @@
         NotImplementedException : NotImplementedException,
         PrivateConstructorException : PrivateConstructorException,
         TransformationException : TransformationException,
+        ValidationException : ValidationException,
         IOException : IOException,
         NetworkException : NetworkException,
         HTTPException : HTTPException,
@@ -303,4 +309,4 @@
      */
     global.exceptions = jsx.exceptions;
 
-})(this, this.jsx);
+})(window, window.jsx);

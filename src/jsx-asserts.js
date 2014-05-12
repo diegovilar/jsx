@@ -1,4 +1,4 @@
-(function(global, jsx, undefined) {
+(function(global, jsx, exceptions, undefined) {
     "use strict";
 
     var ensureString = jsx.ensureString,
@@ -6,14 +6,16 @@
         isString = jsx.isString,
         isNumber = jsx.isNumber,
         isInteger = jsx.isInteger,
-        isFloat = jsx.isNumber,// ?????
+        isFloat = jsx.isFloat,
         isBoolean = jsx.isBoolean,
         isFunction = jsx.isFunction,
         isArray = jsx.isArray,
         isObject = jsx.isObject,
         isPojo = jsx.isPojo,
-        dump = jsx.dump,
-        INFINITY = Infinity;
+        dumpWithType = jsx.dumpWithType,
+        Exception = exceptions.Exception,
+        IllegalTypeException = exceptions.IllegalTypeException,
+        OutOfRangeException = exceptions.OutOfRangeException;
 
 
     /**
@@ -25,8 +27,8 @@
     function assertString(value, message) {
 
         if (!isString(value)) {
-            message = ensureString(message).trim() || 'Value is not a string: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a string: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -37,27 +39,21 @@
      *
      * @param {*} value
      * @param {number} min
-     * @param {number} [max=Infinity]
+     * @param {number}max
      * @param {string} [message]
      * @returns {string}
      */
     function assertStringLength(value, min, max, message) {
 
-        assertRange(arguments.length, 2, 4);
-        assertString(value);
-        assertRange(min, 0, Infinity);
+        assertNumber(min, 'Parameter "min" must be a number: ' + dumpWithType(min));
+        assertNumber(max, 'Parameter "max" must be a number: ' + dumpWithType(max));
 
-        if (arguments.length > 2) {
-            assertRange(max, min + 1, Infinity,'Parameter "max" must be a number: ' + dump(max));
-        }
-        else {
-            max = Infinity;
-        }
+        assertString(value, message);
 
         var len = value.length;
         if (len < min || len > max) {
-            message = ensureString(message).trim() || interpolate('Value\'s length is out of range {0},{1}: {2}', min, max, len);
-            throw new RangeError(message);
+            message = ensureString(message).trim() || interpolate('String\'s length is out of range [{0}-{1}]: {2}', min, max, len);
+            throw new OutOfRangeException(message);
         }
 
         return value;
@@ -75,10 +71,10 @@
     function assertStringTrimmedLength(value, min, max, message) {
 
         assertString(value, message);
-        assertNumber(min, 'Parameter "min" must be a number: ' + dump(min));
+        assertNumber(min, 'Parameter "min" must be a number: ' + dumpWithType(min));
 
         if (arguments.length >= 3) {
-            assertNumber(max, 'Parameter "max" must be a number: ' + dump(max));
+            assertNumber(max, 'Parameter "max" must be a number: ' + dumpWithType(max));
         }
         else {
             max = Number.MAX_VALUE;
@@ -86,8 +82,8 @@
 
         var len = value.trim().length;
         if (len < min || len > max) {
-            message = ensureString(message).trim() || interpolate('Value\'s trimmed length is out of range {0},{1}: {2}', min, max, len);
-            throw new RangeError(message);
+            message = ensureString(message).trim() || interpolate('Trimmed string\'s length is out of range [{0}-{1}]: {2}', min, max, len);
+            throw new OutOfRangeException(message);
         }
 
         return value.trim();
@@ -103,8 +99,8 @@
     function assertParsableNumber(value, message) {
 
         if (!jsx.isParsableNumber(value)) {
-            message = ensureString(message).trim() || 'Value is no parsable to number: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is no parsable to number: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return Number(value);
@@ -120,8 +116,8 @@
     function assertParsableInteger(value, message) {
 
         if (!jsx.isParsableInteger(value)) {
-            message = ensureString(message).trim() || 'Value is no parsable to integer or would loose precision: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is no parsable to integer or would loose precision: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return parseInt(value, 10);
@@ -136,8 +132,8 @@
     function assertNumber(value, message) {
 
         if (!isNumber(value)) {
-            message = ensureString(message).trim() || 'Value is not a number: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a number: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -152,8 +148,8 @@
     function assertFloat(value, message) {
 
         if (!isFloat(value)) {
-            message = ensureString(message).trim() || 'Value is not a float: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a float: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -168,8 +164,8 @@
     function assertInteger(value, message) {
 
         if (!isNumber(value)) {
-            message = ensureString(message).trim() || 'Value is not an integer: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not an integer: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -185,14 +181,14 @@
      */
     function assertRange(value, min, max, message) {
 
-        assertNumber(min, 'Parameter "min" must be a number: ' + dump(min));
-        assertNumber(max, 'Parameter "max" must be a number: ' + dump(max));
+        assertNumber(min, 'Parameter "min" must be a number: ' + dumpWithType(min));
+        assertNumber(max, 'Parameter "max" must be a number: ' + dumpWithType(max));
 
         assertNumber(value, message);
 
         if (value < min || value > max) {
             message = ensureString(message).trim() || interpolate('Value is out of range {0},{1}: {2}', min, max, value);
-            throw new RangeError(message);
+            throw new OutOfRangeException(message);
         }
 
         return value;
@@ -207,8 +203,8 @@
     function assertBoolean(value, message) {
 
         if (!isBoolean(value)) {
-            message = ensureString(message).trim() || 'Value is not a boolean: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a boolean: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -223,8 +219,8 @@
     function assertTrue(value, message) {
 
         if (!isBoolean(value) || !value) {
-            message = ensureString(message).trim() || 'Value is not boolean true: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not boolean true: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -239,8 +235,8 @@
     function assertFalse(value, message) {
 
         if (!isBoolean(value) || value) {
-            message = ensureString(message).trim() || 'Value is not boolean false: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not boolean false: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -255,8 +251,8 @@
     function assertTruthy(value, message) {
 
         if (!value) {
-            message = ensureString(message).trim() || 'Value cannot be coarced to boolean true: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value cannot be coarced to boolean true: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -271,8 +267,8 @@
     function assertFalsy(value, message) {
 
         if (value) {
-            message = ensureString(message).trim() || 'Value cannot be coarced to boolean false: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value cannot be coarced to boolean false: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -287,7 +283,7 @@
      */
     function assertEqual(valueA, valueB, message) {
 
-        message = ensureString(message).trim() || interpolate('Values are not equal (==): {0} and {1}', dump(valueA), dump(valueA));
+        message = ensureString(message).trim() || interpolate('Values are not equal (==): {0} and {1}', dumpWithType(valueA), dumpWithType(valueA));
         assertTrue(valueA == valueB, message);
 
     }
@@ -300,7 +296,7 @@
      */
     function assertEqualOption(value, options, message) {
 
-        assertArray(options, 'Parameter "options" must be an array: ' + dump(options));
+        assertArray(options, 'Parameter "options" must be an array: ' + dumpWithType(options));
 
         var i = 0,
             len = options.length;
@@ -310,8 +306,8 @@
             }
         }
 
-        message = ensureString(message).trim() || interpolate('Value should be equal (==) to one of [{0}], but got: {1}', options, dump(value));
-        throw new TypeError(message);
+        message = ensureString(message).trim() || interpolate('Value should be equal (==) to one of [{0}], but got: {1}', options, dumpWithType(value));
+        throw new Exception(message);
 
     }
 
@@ -323,7 +319,7 @@
      */
     function assertExactlyEqualOption(value, options, message) {
 
-        assertArray(options, 'Parameter "options" must be an array: ' + dump(options));
+        assertArray(options, 'Parameter "options" must be an array: ' + dumpWithType(options));
 
         var i = 0,
             len = options.length;
@@ -333,8 +329,8 @@
             }
         }
 
-        message = ensureString(message).trim() || interpolate('Value should be exactly equal (===) to one of [{0}]', options, dump(value));
-        throw new TypeError(message);
+        message = ensureString(message).trim() || interpolate('Value should be exactly equal (===) to one of [{0}]: {1}', options, dumpWithType(value));
+        throw new Exception(message);
 
     }
 
@@ -346,7 +342,7 @@
      */
     function assertExactlyEqual(valueA, valueB, message) {
 
-        message = ensureString(message).trim() || interpolate('Values are not exactly equal (===): {0} and {1}', dump(valueA), dump(valueA));
+        message = ensureString(message).trim() || interpolate('Values are not exactly equal (===): {0} and {1}', dumpWithType(valueA), dumpWithType(valueA));
         assertTrue(valueA === valueB, message);
 
     }
@@ -359,8 +355,8 @@
     function assertArray(value, message) {
 
         if (!isArray(value)) {
-            message = ensureString(message).trim() || 'Value is not an array: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not an array: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -378,7 +374,7 @@
 
         if (!value.length) {
             message = ensureString(message).trim() || 'Array is empty';
-            throw new TypeError(message);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -393,8 +389,8 @@
     function assertObject(value, message) {
 
         if (!isObject(value)) {
-            message = ensureString(message).trim() || 'Value is not an object: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not an object: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -409,8 +405,8 @@
     function assertPojo(value, message) {
 
         if (!isPojo(value)) {
-            message = ensureString(message).trim() || 'Value is not a POJO: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a POJO: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -425,8 +421,8 @@
     function assertFunction(value, message) {
 
         if (!isFunction(value)) {
-            message = ensureString(message).trim() || 'Value is not a function: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a function: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -442,7 +438,7 @@
 
         if (value === undefined) {
             message = ensureString(message).trim() || 'Value is undefined';
-            throw new TypeError(message);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -458,8 +454,8 @@
     function assertDate(value, message) {
 
         if (!(value instanceof Date)) {
-            message = ensureString(message).trim() || 'Value is not a Date: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not a Date: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -491,11 +487,11 @@
      */
     function assertInstance(constructor, value, message) {
 
-        assertFunction(constructor, 'Parameter "constructor" must be a function: ' + dump(constructor));
+        assertFunction(constructor, 'Parameter "constructor" must be a function: ' + dumpWithType(constructor));
 
         if (!(value instanceof constructor)) {
-            message = ensureString(message).trim() || 'Value is not an instance of the required type: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is not an instance of the required type: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -528,11 +524,11 @@
      */
     function assertEnum(enumType, value, message) {
 
-        assertInstance(jsx.Enum, enumType, 'Parameter "enumType" must an Enum: ' + dump(enumType));
+        assertInstance(jsx.Enum, enumType, 'Parameter "enumType" must an Enum: ' + dumpWithType(enumType));
 
         if (!enumType.is(value)) {
-            message = ensureString(message).trim() || 'Value is a valid value for the Enum: ' + dump(value);
-            throw new TypeError(message);
+            message = ensureString(message).trim() || 'Value is a valid value for the Enum: ' + dumpWithType(value);
+            throw new IllegalTypeException(message);
         }
 
         return value;
@@ -591,4 +587,4 @@
         assertNullableEnum: assertNullableEnum
     };
 
-})(this, jsx);
+})(window, jsx, jsx.exceptions);

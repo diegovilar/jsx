@@ -4,5 +4,8 @@
   <component name="UnicodeBrowser">
     <option name="fontName" value="Monospaced" />
   </component>
+  <component name="ZipChangesCommitExecutor">
+    <option name="PATCH_PATH" value="" />
+  </component>
 </project>
 

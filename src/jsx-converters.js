@@ -108,4 +108,4 @@
         toJson : toJson
     };
 
-})(this, jsx, jsx.exceptions, jsx.asserts);
+})(window, jsx, jsx.exceptions, jsx.asserts);
